@@ -124,7 +124,7 @@ export default function UserDisplayBoard({
                   className="flex min-h-0 flex-col gap-1.5"
                   style={{ flex: vis.highlightNews ? "0 0 50%" : "1 1 100%" }}
                 >
-                  {/* Top section: [Achievers + Stars] beside [About Us] */}
+                  {/* Top: [Achievers + Stars] beside [About Us] */}
                   {(vis.bestAlumni || vis.bestProgrammer || aboutUs) && (
                     <div className="flex min-h-0 gap-1.5" style={{ flex: "2 1 0" }}>
 
@@ -144,7 +144,7 @@ export default function UserDisplayBoard({
                         </div>
                       )}
 
-                      {/* Right col: About Us — full height */}
+                      {/* Right col: About Us */}
                       {aboutUs && (
                         <div className="min-h-0 overflow-hidden flex-1 min-w-0">
                           <AboutUsSection data={aboutUs} />
@@ -153,7 +153,7 @@ export default function UserDisplayBoard({
                     </div>
                   )}
 
-                  {/* Bottom: Update Notice — full width */}
+                  {/* Bottom: Update Notice */}
                   {vis.noticeBoard && (
                     <div className="min-h-0 overflow-hidden" style={{ flex: "1 1 0" }}>
                       <UpdateNoticeSliderSection items={notices} />
@@ -200,6 +200,7 @@ export default function UserDisplayBoard({
             />
           </section>
         )}
+
       </div>
     </main>
   );

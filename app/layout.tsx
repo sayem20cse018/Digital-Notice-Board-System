@@ -1,4 +1,4 @@
-import { Inter, Merriweather, Noto_Sans_Bengali } from 'next/font/google';
+import { Outfit } from 'next/font/google';
 import './globals.css';
 import Image from 'next/image';
 import { cookies, headers } from 'next/headers';
@@ -12,26 +12,7 @@ import TickerBar from './components/TickerBar';
 
 export const dynamic = 'force-dynamic';
 
-// Body / UI — Inter (Regular 400, Medium 500, SemiBold 600)
-const inter = Inter({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-inter',
-});
-
-// Display titles — Merriweather Bold
-const merriweather = Merriweather({
-  subsets: ['latin'],
-  weight: ['400', '700', '900'],
-  variable: '--font-merriweather',
-});
-
-// Bangla — Noto Sans Bengali
-const notoBengali = Noto_Sans_Bengali({
-  subsets: ['bengali'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-bangla',
-});
+const outfit = Outfit({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
 export const metadata = {
   title: 'GSTU CSE Department',
@@ -47,29 +28,34 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const stored = await getDepartmentSettings();
   const notices = (!isAdminRoute && !isViewRoute) ? await getRightSidebarNotices() : [];
 
-  let deptName: string        = stored?.departmentName || 'Department of Computer Science & Engineering';
-  let logoUrl: string | null  = stored?.logoUrl        || '/images/cse_logo.jpg';
-  let welcome: string         = stored?.marqueeText    || 'Welcome to CSE Department, GSTU';
-  let universityName: string  = stored?.universityName || 'Gopalganj Science and Technology University';
+  let deptName: string = stored?.departmentName || 'Department of Computer Science & Engineering';
+  let logoUrl: string | null = stored?.logoUrl || '/images/cse_logo.jpg';
+  let welcome: string = stored?.marqueeText || 'Welcome to CSE Department, GSTU';
+  let universityName: string =
+    stored?.universityName || 'Gopalganj Science and Technology University';
+  let universityLogoUrl: string = stored?.universityLogoUrl || '/images/GSTUlogo.png';
 
   if (isDbDisabled()) {
     try {
       const cookieStore = await cookies();
-      const ckName    = cookieStore.get('dept_name')?.value;
-      const ckLogo    = cookieStore.get('dept_logo')?.value;
+      const ckName = cookieStore.get('dept_name')?.value;
+      const ckLogo = cookieStore.get('dept_logo')?.value;
       const ckWelcome = cookieStore.get('dept_welcome')?.value;
       const ckUniName = cookieStore.get('uni_name')?.value;
-      if (ckName?.trim())    deptName       = ckName;
-      if (ckLogo?.trim())    logoUrl        = ckLogo;
-      if (ckWelcome?.trim()) welcome        = ckWelcome;
+      const ckUniLogo = cookieStore.get('uni_logo')?.value;
+
+      if (ckName?.trim()) deptName = ckName;
+      if (ckLogo?.trim()) logoUrl = ckLogo;
+      if (ckWelcome?.trim()) welcome = ckWelcome;
       if (ckUniName?.trim()) universityName = ckUniName;
+      if (ckUniLogo?.trim()) universityLogoUrl = ckUniLogo;
     } catch (err) {
       console.error('Error reading cookies:', err);
     }
   }
 
   return (
-    <html lang="en" className={isAdminRoute ? 'admin-html' : ''}>
+    <html lang="en" className={isAdminRoute ? 'admin-html' : 'h-full'}>
       <head>
         <meta
           name="viewport"
@@ -81,8 +67,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body
-        className={`${inter.variable} ${merriweather.variable} ${notoBengali.variable} ${inter.className} ${
-          isAdminRoute ? 'admin-body min-h-screen bg-gray-50' : ''
+        className={`${outfit.className} ${
+          isAdminRoute ? 'admin-body min-h-screen bg-gray-50' : 'min-h-screen flex flex-col'
         }`}
       >
         <Providers>
@@ -90,46 +76,37 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             children
           ) : (
             <>
-              {/* ══════════════════════════════════════════════
-                  HEADER — logo | dept name + uni name | clock
-                  ══════════════════════════════════════════════ */}
+              {/* ── HEADER ── dark navy bar: logo | dept name | clock + weather */}
               <header className="display-header flex-shrink-0 w-full">
-                <div className="display-header-inner flex w-full items-center gap-4 px-4 py-2">
-
-                  {/* Left: Logo */}
+                <div className="display-header-inner flex w-full items-center gap-3 px-4 py-2">
+                  {/* Logo */}
                   <div className="flex-shrink-0">
                     {logoUrl ? (
                       <Image
                         src={logoUrl}
                         alt="Department Logo"
-                        width={68}
-                        height={68}
+                        width={72}
+                        height={72}
                         unoptimized
                         className="rounded-full border-2 border-white/30 object-cover"
-                        style={{ width: 68, height: 68 }}
+                        style={{ width: 72, height: 72 }}
                       />
                     ) : (
-                      <div className="h-[68px] w-[68px]" />
+                      <div className="h-[72px] w-[72px]" />
                     )}
                   </div>
 
-                  {/* Centre: Dept name (big) + University name (below, larger) */}
-                  <div className="flex flex-1 flex-col justify-center gap-0.5 pl-1">
-                    <h1
-                      className="text-xl font-extrabold leading-tight text-white md:text-2xl lg:text-3xl"
-                      style={{ fontFamily: "var(--font-inter, Arial, sans-serif)", letterSpacing: "-0.01em" }}
-                    >
+                  {/* Department name + University name — centre */}
+                  <div className="flex flex-1 flex-col items-center justify-center gap-0.5">
+                    <h1 className="text-center text-lg font-extrabold leading-tight text-green-400 md:text-xl lg:text-2xl" style={{ textShadow: "0 0 20px rgba(74,222,128,0.4)" }}>
                       {deptName}
                     </h1>
-                    <p
-                      className="text-base font-bold text-blue-100/90 md:text-lg lg:text-xl"
-                      style={{ fontFamily: "var(--font-inter, Arial, sans-serif)" }}
-                    >
+                    <p className="text-center text-sm font-semibold text-green-200/80 md:text-base">
                       {universityName}
                     </p>
                   </div>
 
-                  {/* Right: Clock + Weather */}
+                  {/* Clock + Weather — right */}
                   <div className="flex flex-shrink-0 items-center gap-4">
                     <Suspense fallback={<div className="h-10 w-20" />}>
                       <Clock />
@@ -140,11 +117,28 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 </div>
               </header>
 
-              {/* ── TICKER ── */}
+              {/* ── WELCOME + EMERGENCY TICKER ── split two-column bar */}
               <TickerBar welcome={welcome} notices={notices} />
 
-              {/* ── MAIN — takes ALL remaining height (no footer) ── */}
-              <div className="relative z-10 min-h-0 flex-1 overflow-hidden">{children}</div>
+              {/* ── MAIN CONTENT ── */}
+              <div className="relative z-10 flex-1 h-full min-h-0 overflow-hidden">{children}</div>
+
+              {/* ── FOOTER ── */}
+              <footer className="display-footer flex-shrink-0 w-full">
+                <div className="flex items-center justify-center gap-3 px-4 py-2">
+                  <Image
+                    src={universityLogoUrl}
+                    alt="University Logo"
+                    width={36}
+                    height={36}
+                    unoptimized
+                    className="rounded-full"
+                  />
+                  <p className="text-center text-sm font-semibold tracking-wide text-white md:text-base lg:text-lg">
+                    {universityName}
+                  </p>
+                </div>
+              </footer>
             </>
           )}
         </Providers>
