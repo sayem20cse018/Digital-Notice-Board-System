@@ -206,5 +206,5 @@ export const CONTENT_KEYS = {
 	projectShowcase: { fileKey: "project-showcase", mongoCollection: "ProjectShowcase" },
 	roomDirectory: { fileKey: "room-directory", mongoCollection: "RoomDirectory" },
 	aboutUs: { fileKey: "about-us", mongoCollection: "AboutUs" },
-	events:  { fileKey: "events-board", mongoCollection: "EventsBoard" },
+	events: { fileKey: "events-board", mongoCollection: "EventsBoard" },
 } as const;
