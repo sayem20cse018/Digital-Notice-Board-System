@@ -22,6 +22,8 @@ export async function fetchJson<T = Record<string, unknown>>(
 	init?: RequestInit,
 ): Promise<T> {
 	const res = await fetch(url, init);
+	console.log(url)
+	console.log(res)
 	const data = await parseJsonResponse<T>(res);
 	return data;
 }

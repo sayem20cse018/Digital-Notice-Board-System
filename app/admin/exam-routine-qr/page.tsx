@@ -121,7 +121,7 @@ export default function AdminExamRoutineQrPage() {
                 className="w-full rounded border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:outline-none" disabled={saving} />
             </div>
             <div className="rounded-lg border-2 border-blue-200 bg-blue-50 p-4 space-y-3">
-              <p className="text-sm font-semibold text-blue-800">Upload Exam Routine File — QR generates automatically</p>
+              <p className="text-sm font-semibold text-blue-800">Upload Exam Routine File, QR generates automatically</p>
               <FileUpload name="fileUrl" label="Exam Routine File (PDF or Image)"
                 currentFile={editing ? data.fileUrl : null} accept="image/*,.pdf" onFileChange={handleFileChange} />
               {qrCodeUrl && (
