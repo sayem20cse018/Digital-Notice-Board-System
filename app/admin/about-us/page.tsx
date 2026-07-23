@@ -6,7 +6,7 @@ import AdminPageHeader from "@/app/components/admin-panel/AdminPageHeader";
 import AdminFlashMessage from "@/app/components/admin-panel/AdminFlashMessage";
 import { AdminFormCard } from "@/app/components/admin-panel/AdminCard";
 import { fetchJson } from "@/app/lib/fetch-json";
-
+// about us
 type AboutData = {
   id: string | null;
   heading: string;
