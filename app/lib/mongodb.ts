@@ -38,6 +38,9 @@ function createClientPromise(): Promise<MongoClient> {
         socketTimeoutMS: 60000,
         maxPoolSize: 10,
         minPoolSize: 1,
+        tls: true,
+        tlsAllowInvalidCertificates: false,
+        tlsAllowInvalidHostnames: false,
       }
     : {
         serverSelectionTimeoutMS: 10000,
