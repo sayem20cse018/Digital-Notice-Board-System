@@ -18,38 +18,43 @@ const allowedTypes = [
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
 /** Upload to Cloudinary using unsigned upload preset */
-async function uploadToCloudinary(buffer: Buffer, filename: string, mimeType: string): Promise<string> {
+async function uploadToCloudinary(
+	bytes: ArrayBuffer,
+	filename: string,
+	mimeType: string,
+): Promise<string> {
 	const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
 	const uploadPreset = process.env.CLOUDINARY_UPLOAD_PRESET;
 
 	if (!cloudName || !uploadPreset) {
-		throw new Error("Cloudinary not configured. Set CLOUDINARY_CLOUD_NAME and CLOUDINARY_UPLOAD_PRESET.");
+		throw new Error(
+			"Cloudinary not configured. Set CLOUDINARY_CLOUD_NAME and CLOUDINARY_UPLOAD_PRESET.",
+		);
 	}
 
+	// Use the original ArrayBuffer directly — no Buffer conversion needed
+	const blob = new Blob([bytes], { type: mimeType });
 	const formData = new FormData();
-	// Copy buffer into a fresh ArrayBuffer to satisfy strict TypeScript type checking
-	const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer;
-	const blob = new Blob([arrayBuffer], { type: mimeType });
 	formData.append("file", blob, filename);
 	formData.append("upload_preset", uploadPreset);
 	formData.append("folder", "notis-app");
 
-	const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
-		method: "POST",
-		body: formData,
-	});
+	const res = await fetch(
+		`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
+		{ method: "POST", body: formData },
+	);
 
 	if (!res.ok) {
 		const err = await res.text();
 		throw new Error(`Cloudinary upload failed: ${err}`);
 	}
 
-	const data = await res.json();
-	return data.secure_url as string;
+	const data = (await res.json()) as { secure_url: string };
+	return data.secure_url;
 }
 
-/** Upload to local /public/uploads — only works when not on Vercel */
-async function uploadToLocal(buffer: Buffer, filename: string): Promise<string> {
+/** Upload to local /public/uploads — only for local development */
+async function uploadToLocal(bytes: ArrayBuffer, filename: string): Promise<string> {
 	const { writeFile, mkdir } = await import("fs/promises");
 	const { existsSync } = await import("fs");
 	const { join } = await import("path");
@@ -63,7 +68,7 @@ async function uploadToLocal(buffer: Buffer, filename: string): Promise<string> 
 	const safeFilename = `${timestamp}-${filename.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
 	const filepath = join(uploadsDir, safeFilename);
 
-	await writeFile(filepath, buffer);
+	await writeFile(filepath, Buffer.from(bytes));
 	return `/uploads/${safeFilename}`;
 }
 
@@ -84,23 +89,26 @@ export async function POST(request: NextRequest) {
 		}
 
 		if (file.size > MAX_SIZE) {
-			return NextResponse.json({ success: false, error: "File too large (max 10MB)" }, { status: 400 });
+			return NextResponse.json(
+				{ success: false, error: "File too large (max 10MB)" },
+				{ status: 400 },
+			);
 		}
 
+		// Get raw ArrayBuffer — no Buffer conversion, avoids TypeScript strict type issues
 		const bytes = await file.arrayBuffer();
-		const buffer = Buffer.from(bytes);
 
 		let url: string;
 
-		// On Vercel (or when Cloudinary is configured), use Cloudinary
 		const isVercel = Boolean(process.env.VERCEL);
-		const hasCloudinary = Boolean(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_UPLOAD_PRESET);
+		const hasCloudinary = Boolean(
+			process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_UPLOAD_PRESET,
+		);
 
 		if (isVercel || hasCloudinary) {
-			url = await uploadToCloudinary(buffer, file.name, file.type);
+			url = await uploadToCloudinary(bytes, file.name, file.type);
 		} else {
-			// Local development — write to public/uploads
-			url = await uploadToLocal(buffer, file.name);
+			url = await uploadToLocal(bytes, file.name);
 		}
 
 		return NextResponse.json({ success: true, url });
