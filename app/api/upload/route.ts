@@ -27,9 +27,9 @@ async function uploadToCloudinary(buffer: Buffer, filename: string, mimeType: st
 	}
 
 	const formData = new FormData();
-	// Convert Buffer to Uint8Array to avoid TypeScript ArrayBuffer compatibility issue
-	const uint8Array = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
-	const blob = new Blob([uint8Array], { type: mimeType });
+	// Copy buffer into a fresh ArrayBuffer to satisfy strict TypeScript type checking
+	const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer;
+	const blob = new Blob([arrayBuffer], { type: mimeType });
 	formData.append("file", blob, filename);
 	formData.append("upload_preset", uploadPreset);
 	formData.append("folder", "notis-app");
