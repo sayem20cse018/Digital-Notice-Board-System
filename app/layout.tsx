@@ -4,13 +4,14 @@ import Image from 'next/image';
 import { cookies, headers } from 'next/headers';
 import { getDepartmentSettings, getRightSidebarNotices } from '@/app/lib/store';
 import { isDbDisabled } from '@/app/lib/config';
+
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
 import { Providers } from './providers';
 import { Suspense } from 'react';
 import Clock from './components/Clock';
 import WeatherWidget from './components/WeatherWidget';
 import TickerBar from './components/TickerBar';
-
-export const dynamic = 'force-dynamic';
 
 // Body / UI — Inter (Regular 400, Medium 500, SemiBold 600)
 const inter = Inter({
