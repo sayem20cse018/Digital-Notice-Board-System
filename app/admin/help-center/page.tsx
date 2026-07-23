@@ -80,19 +80,22 @@ export default function AdminHelpCenterPage() {
       officeName:   label,
       phoneNumber:  phones[type] || "",
       fileUrl:      fileUrls[type] || null,
-      qrCodeUrl:    qrUrls[type] || null,
       contactType:  type,
       displayOrder: type === "office" ? 0 : 1,
       published:    true,
       ...(existing?.id ? { id: existing.id } : {}),
     };
     try {
-      const result = await fetchJson("/api/help-center", {
+      const result = await fetchJson<{ success: boolean; message?: string; data?: { qrCodeUrl?: string | null } }>("/api/help-center", {
         method: existing?.id ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       if (result.success) {
+        // Update QR preview with server-generated URL
+        if (result.data?.qrCodeUrl) {
+          setQrUrls((prev) => ({ ...prev, [type]: result.data!.qrCodeUrl! }));
+        }
         setMessage({ type: "success", text: `${label} saved!` });
         fetchItems();
         setTimeout(() => setMessage(null), 2500);

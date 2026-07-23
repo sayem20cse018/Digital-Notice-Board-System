@@ -18,7 +18,7 @@ type Slot = {
 
 const SLOT_LABELS = ["Session 1", "Session 2", "Session 3", "Session 4"];
 
-/** Master QR encodes /view/results — one QR shows all sessions */
+/** Master QR encodes /view/results — fetched from server to get correct public URL */
 function buildMasterQrUrl(): string {
   const base = typeof window !== "undefined"
     ? `${window.location.protocol}//${window.location.host}`
@@ -34,10 +34,26 @@ export default function AdminResultsPage() {
   const [editing, setEditing] = useState<number | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [masterQr, setMasterQr] = useState<string | null>(null);
+  const [masterQrUrl, setMasterQrUrl] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSlots();
-    setMasterQr(buildMasterQrUrl());
+    // Fetch the correct public URL from server to avoid localhost in QR
+    fetchJson<{ success: boolean; data?: { url: string; qrCodeUrl: string } }>("/api/master-qr")
+      .then((r) => {
+        if (r.success && r.data) {
+          setMasterQr(r.data.qrCodeUrl);
+          setMasterQrUrl(r.data.url);
+        } else {
+          // Fallback to client-side build
+          setMasterQr(buildMasterQrUrl());
+          setMasterQrUrl(`${window.location.protocol}//${window.location.host}/view/results`);
+        }
+      })
+      .catch(() => {
+        setMasterQr(buildMasterQrUrl());
+        setMasterQrUrl(`${window.location.protocol}//${window.location.host}/view/results`);
+      });
   }, []);
 
   async function fetchSlots() {

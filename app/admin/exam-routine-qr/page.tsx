@@ -64,18 +64,19 @@ export default function AdminExamRoutineQrPage() {
     const fd = new FormData(e.currentTarget);
     const payload = {
       title: fd.get("title")?.toString().trim() || "Exam Routine",
-      qrCodeUrl: qrCodeUrl || null,
       fileUrl: fileUrl || null,
       published: fd.get("published") === "on" || fd.get("published") === "true",
     };
 
     try {
-      const result = await fetchJson<{ success: boolean; message?: string }>("/api/exam-routine-qr", {
+      const result = await fetchJson<{ success: boolean; message?: string; qrCodeUrl?: string | null }>("/api/exam-routine-qr", {
         method: data.id ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data.id ? { ...payload, id: data.id } : payload),
       });
       if (result.success) {
+        // Update QR preview with server-generated URL (correct public URL, not localhost)
+        if (result.qrCodeUrl) setQrCodeUrl(result.qrCodeUrl);
         setMessage({ type: "success", text: "Saved! QR is ready on the display board." });
         setEditing(false); setFormKey((k) => k + 1); fetchData();
         setTimeout(() => setMessage(null), 3000);

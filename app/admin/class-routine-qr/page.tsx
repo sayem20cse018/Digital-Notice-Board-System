@@ -73,18 +73,19 @@ export default function AdminClassRoutineQrPage() {
     const fd = new FormData(e.currentTarget);
     const payload = {
       title: fd.get("title")?.toString().trim() || "Class Routine",
-      qrCodeUrl: qrCodeUrl || null,
       fileUrl: fileUrl || null,
       published: fd.get("published") === "on" || fd.get("published") === "true",
     };
 
     try {
-      const result = await fetchJson<{ success: boolean; message?: string }>("/api/class-routine-qr", {
+      const result = await fetchJson<{ success: boolean; message?: string; qrCodeUrl?: string | null }>("/api/class-routine-qr", {
         method: data.id ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data.id ? { ...payload, id: data.id } : payload),
       });
       if (result.success) {
+        // Update QR preview with server-generated URL (correct public URL, not localhost)
+        if (result.qrCodeUrl) setQrCodeUrl(result.qrCodeUrl);
         setMessage({ type: "success", text: "Saved! QR is ready on the display board." });
         setEditing(false);
         setFormKey((k) => k + 1);
