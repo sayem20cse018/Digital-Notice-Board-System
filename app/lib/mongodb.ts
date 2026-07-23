@@ -1,10 +1,5 @@
 import { MongoClient, MongoClientOptions } from "mongodb";
 import { isDbDisabled } from "./config";
-import dns from "dns";
-
-// Force Node.js to prefer IPv4 for DNS resolution
-// This fixes "querySrv ECONNREFUSED" on Windows with IPv6-first DNS
-dns.setDefaultResultOrder("ipv4first");
 
 declare global {
   // eslint-disable-next-line no-var
@@ -36,11 +31,12 @@ function createClientPromise(): Promise<MongoClient> {
         serverSelectionTimeoutMS: 30000,
         connectTimeoutMS: 30000,
         socketTimeoutMS: 60000,
-        maxPoolSize: 10,
-        minPoolSize: 1,
-        tls: true,
-        tlsAllowInvalidCertificates: false,
-        tlsAllowInvalidHostnames: false,
+        maxPoolSize: 3,
+        minPoolSize: 0,
+        // Do NOT explicitly set tls:true — the driver handles this from mongodb+srv
+        // Setting it can cause TLS handshake conflicts on some Node.js versions
+        retryWrites: true,
+        retryReads: true,
       }
     : {
         serverSelectionTimeoutMS: 10000,
@@ -68,6 +64,7 @@ function getClientPromise(): Promise<MongoClient> {
     return global._mongoClientPromise;
   }
 
+  // Production (Vercel): fresh connection per invocation
   return createClientPromise();
 }
 
