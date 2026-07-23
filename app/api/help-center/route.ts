@@ -1,54 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CONTENT_KEYS, createItem, deleteItem, listItems, updateItem } from "@/app/lib/content-store";
-import { getPublicSiteUrl, getBaseUrlFromRequest } from "@/app/lib/qr-utils";
+import { generateFileQrUrl, getBaseUrlFromRequest } from "@/app/lib/qr-utils";
 import { safeRevalidate } from "@/app/lib/revalidate";
-import QRCode from "qrcode";
-import { existsSync } from "fs";
-import { mkdir, writeFile } from "fs/promises";
-import { join } from "path";
 
 export const runtime = "nodejs";
 
 const { fileKey, mongoCollection } = CONTENT_KEYS.helpCenter;
 
-const UPLOAD_DIR = join(process.cwd(), "public", "uploads");
-
 function normalizeContactType(value: unknown): "office" | "crs" {
 	return value === "crs" ? "crs" : "office";
-}
-
-/**
- * Generate a QR code pointing to a file URL.
- * If fileUrl is relative (/uploads/...), prepend the public base URL
- * so phones on any network can reach it.
- */
-async function generateHelpQr(
-	fileUrl: string,
-	id: string,
-	contactType: string,
-	requestBase: string | null,
-): Promise<string> {
-	let targetUrl = fileUrl;
-	if (!fileUrl.startsWith("http://") && !fileUrl.startsWith("https://")) {
-		const base = await getPublicSiteUrl(requestBase);
-		targetUrl = `${base}${fileUrl.startsWith("/") ? "" : "/"}${fileUrl}`;
-	}
-
-	if (!existsSync(UPLOAD_DIR)) {
-		await mkdir(UPLOAD_DIR, { recursive: true });
-	}
-
-	const filename = `qr-help-${contactType}-${id}.png`;
-	const filepath = join(UPLOAD_DIR, filename);
-
-	const buffer = await QRCode.toBuffer(targetUrl, {
-		width: 400,
-		margin: 2,
-		color: { dark: "#7f1d1d", light: "#ffffff" },
-	});
-
-	await writeFile(filepath, buffer);
-	return `/uploads/${filename}`;
 }
 
 export async function GET() {
@@ -82,11 +42,11 @@ export async function POST(request: NextRequest) {
 			published: published !== false,
 		});
 
-		// Generate QR server-side if a file was provided
+		// Generate QR using external service — no filesystem write
 		let qrCodeUrl: string | null = null;
 		if (fileUrl?.trim()) {
 			const requestBase = getBaseUrlFromRequest(request);
-			qrCodeUrl = await generateHelpQr(fileUrl.trim(), id, ct, requestBase);
+			qrCodeUrl = await generateFileQrUrl(fileUrl.trim(), requestBase);
 			await updateItem(fileKey, mongoCollection, id, { qrCodeUrl });
 		}
 
@@ -122,11 +82,11 @@ export async function PUT(request: NextRequest) {
 			published: Boolean(published),
 		});
 
-		// Regenerate QR server-side if a file was provided
+		// Regenerate QR using external service
 		let qrCodeUrl: string | null = null;
 		if (fileUrl?.trim()) {
 			const requestBase = getBaseUrlFromRequest(request);
-			qrCodeUrl = await generateHelpQr(fileUrl.trim(), String(id), ct, requestBase);
+			qrCodeUrl = await generateFileQrUrl(fileUrl.trim(), requestBase);
 			await updateItem(fileKey, mongoCollection, String(id), { qrCodeUrl });
 		}
 
@@ -148,12 +108,10 @@ export async function DELETE(request: NextRequest) {
 		if (!id) {
 			return NextResponse.json({ success: false, message: "ID is required" }, { status: 400 });
 		}
-
 		const deleted = await deleteItem(fileKey, mongoCollection, id);
 		if (!deleted) {
 			return NextResponse.json({ success: false, message: "Item not found" }, { status: 404 });
 		}
-
 		safeRevalidate("/", "/admin/help-center");
 		return NextResponse.json({ success: true, message: "Help center entry deleted successfully" });
 	} catch (error: unknown) {

@@ -1,40 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listItems, listPublishedItems, createItem, updateItem, deleteItem, CONTENT_KEYS } from "@/app/lib/content-store";
-import { getPublicSiteUrl, getBaseUrlFromRequest } from "@/app/lib/qr-utils";
-import QRCode from "qrcode";
-import { existsSync } from "fs";
-import { mkdir, writeFile } from "fs/promises";
-import { join } from "path";
+import { generateFileQrUrl, getBaseUrlFromRequest } from "@/app/lib/qr-utils";
+import { safeRevalidate } from "@/app/lib/revalidate";
 
 export const runtime = "nodejs";
 
 const { fileKey, mongoCollection } = CONTENT_KEYS.examRoutineQr;
-
-const UPLOAD_DIR = join(process.cwd(), "public", "uploads");
-
-async function generateRoutineQr(fileUrl: string, id: string, requestBase: string | null): Promise<string> {
-  let targetUrl = fileUrl;
-  if (!fileUrl.startsWith("http://") && !fileUrl.startsWith("https://")) {
-    const base = await getPublicSiteUrl(requestBase);
-    targetUrl = `${base}${fileUrl.startsWith("/") ? "" : "/"}${fileUrl}`;
-  }
-
-  if (!existsSync(UPLOAD_DIR)) {
-    await mkdir(UPLOAD_DIR, { recursive: true });
-  }
-
-  const filename = `qr-exam-routine-${id}.png`;
-  const filepath = join(UPLOAD_DIR, filename);
-
-  const buffer = await QRCode.toBuffer(targetUrl, {
-    width: 400,
-    margin: 2,
-    color: { dark: "#1e3a8a", light: "#ffffff" },
-  });
-
-  await writeFile(filepath, buffer);
-  return `/uploads/${filename}`;
-}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -70,13 +41,13 @@ export async function POST(req: NextRequest) {
     });
 
     const requestBase = getBaseUrlFromRequest(req);
-    const qrCodeUrl = await generateRoutineQr(fileUrl, id, requestBase);
+    const qrCodeUrl = await generateFileQrUrl(fileUrl, requestBase);
     await updateItem(fileKey, mongoCollection, id, { qrCodeUrl });
 
+    safeRevalidate("/", "/admin/exam-routine-qr");
     return NextResponse.json({ success: true, id, qrCodeUrl, message: "Exam Routine QR saved!" });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Failed to save";
-    return NextResponse.json({ success: false, message: msg }, { status: 500 });
+    return NextResponse.json({ success: false, message: e instanceof Error ? e.message : "Failed to save" }, { status: 500 });
   }
 }
 
@@ -95,14 +66,14 @@ export async function PUT(req: NextRequest) {
     let qrCodeUrl: string | null = null;
     if (fileUrl) {
       const requestBase = getBaseUrlFromRequest(req);
-      qrCodeUrl = await generateRoutineQr(fileUrl, id, requestBase);
+      qrCodeUrl = await generateFileQrUrl(fileUrl, requestBase);
       await updateItem(fileKey, mongoCollection, id, { qrCodeUrl });
     }
 
+    safeRevalidate("/", "/admin/exam-routine-qr");
     return NextResponse.json({ success: true, qrCodeUrl, message: "Updated!" });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Failed to update";
-    return NextResponse.json({ success: false, message: msg }, { status: 500 });
+    return NextResponse.json({ success: false, message: e instanceof Error ? e.message : "Failed to update" }, { status: 500 });
   }
 }
 

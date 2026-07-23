@@ -14,6 +14,11 @@ function hasDbConfig(): boolean {
 	return !isDbDisabled() && Boolean(process.env.DATABASE_URL || process.env.MONGODB_URI);
 }
 
+/** On Vercel the filesystem is read-only — skip JSON writes */
+function isReadOnlyFs(): boolean {
+	return Boolean(process.env.VERCEL);
+}
+
 function normalizeMongo(doc: Record<string, unknown> & { _id?: ObjectId }): StoredItem {
 	const { _id, ...rest } = doc;
 	return { id: _id!.toString(), ...rest };
@@ -38,6 +43,7 @@ async function readJson(key: string): Promise<StoredItem[]> {
 }
 
 async function writeJson(key: string, items: StoredItem[]): Promise<void> {
+	if (isReadOnlyFs()) return; // Vercel: skip JSON writes — read-only filesystem
 	if (!existsSync(DATA_DIR)) {
 		await mkdir(DATA_DIR, { recursive: true });
 	}
