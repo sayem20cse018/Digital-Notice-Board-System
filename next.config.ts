@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    instrumentationHook: true,
+  },
   images: {
     remotePatterns: [
       {
@@ -16,7 +19,6 @@ const nextConfig: NextConfig = {
     ],
     unoptimized: true,
   },
-  // Ensures server-side env vars are available at runtime (not build time)
   serverExternalPackages: ["mongodb", "bcrypt"],
 };
 
