@@ -31,10 +31,11 @@ function createClientPromise(): Promise<MongoClient> {
         serverSelectionTimeoutMS: 30000,
         connectTimeoutMS: 30000,
         socketTimeoutMS: 60000,
-        maxPoolSize: 3,
-        minPoolSize: 0,
-        // Do NOT explicitly set tls:true — the driver handles this from mongodb+srv
-        // Setting it can cause TLS handshake conflicts on some Node.js versions
+        // Keep pool small for Atlas M0 free tier (max 500 connections)
+        maxPoolSize: 5,
+        minPoolSize: 1,
+        // Keep connections alive to avoid repeated SSL handshakes
+        maxIdleTimeMS: 60000,
         retryWrites: true,
         retryReads: true,
       }
@@ -54,18 +55,15 @@ function getClientPromise(): Promise<MongoClient> {
     return Promise.reject(new Error("Database is disabled (SKIP_DB=1)."));
   }
 
-  if (process.env.NODE_ENV === "development") {
-    if (!global._mongoClientPromise) {
-      global._mongoClientPromise = createClientPromise().catch((err) => {
-        global._mongoClientPromise = undefined;
-        throw err;
-      });
-    }
-    return global._mongoClientPromise;
+  // Reuse connection in BOTH dev and production using global singleton
+  // This prevents repeated SSL handshakes on every Vercel serverless invocation
+  if (!global._mongoClientPromise) {
+    global._mongoClientPromise = createClientPromise().catch((err) => {
+      global._mongoClientPromise = undefined;
+      throw err;
+    });
   }
-
-  // Production (Vercel): fresh connection per invocation
-  return createClientPromise();
+  return global._mongoClientPromise;
 }
 
 export default getClientPromise;

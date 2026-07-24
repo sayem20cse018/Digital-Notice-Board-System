@@ -108,9 +108,17 @@ export async function listPublishedItems(
 				.sort({ displayOrder: 1 })
 				.limit(limit)
 				.toArray();
-			return items.map((doc) => normalizeMongo(doc as Record<string, unknown> & { _id: ObjectId }));
+			const result = items.map((doc) => normalizeMongo(doc as Record<string, unknown> & { _id: ObjectId }));
+			// Cache successful result to JSON as fallback
+			if (result.length > 0 && !isReadOnlyFs()) {
+				writeJson(fileKey + "-cache", result).catch(() => {});
+			}
+			return result;
 		} catch (error) {
 			console.warn(`MongoDB list published failed (${mongoCollection}), using local JSON store:`, error);
+			// Try cache first, then static JSON
+			const cached = await readJson(fileKey + "-cache");
+			if (cached.length > 0) return cached.filter((item) => item.published !== false).slice(0, limit);
 		}
 	}
 
