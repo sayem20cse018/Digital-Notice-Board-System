@@ -6,7 +6,6 @@ import { getDepartmentSettings, getRightSidebarNotices } from '@/app/lib/store';
 import { isDbDisabled } from '@/app/lib/config';
 
 export const dynamic = 'force-dynamic';
-export const fetchCache = 'force-no-store';
 import { Providers } from './providers';
 import { Suspense } from 'react';
 import Clock from './components/Clock';

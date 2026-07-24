@@ -53,7 +53,9 @@ export default function AutoCarousel({
     }, duration);
 
     return () => clearTimeout(timer);
-  }, [items, currentIndex, defaultInterval]);
+    // ✅ Use items.length and items[currentIndex]?.slideDuration as deps — NOT the full items array
+    // Using `items` directly causes infinite loop because array reference changes on every render
+  }, [items.length, currentIndex, defaultInterval, items[currentIndex]?.slideDuration]);
 
   if (items.length === 0) return null;
 
