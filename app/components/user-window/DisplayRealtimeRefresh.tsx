@@ -11,7 +11,7 @@ type Props = {
 export default function DisplayRealtimeRefresh({ intervalSeconds = 60 }: Props) {
   const router = useRouter();
   const lastRefreshRef = useRef(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refreshNow = useCallback(() => {
     const now = Date.now();
