@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listItems, listPublishedItems, createItem, updateItem, deleteItem, CONTENT_KEYS } from "@/app/lib/content-store";
+import { generateFileQrUrl, getBaseUrlFromRequest } from "@/app/lib/qr-utils";
+import { safeRevalidate } from "@/app/lib/revalidate";
+
+export const runtime = "nodejs";
 
 const { fileKey, mongoCollection } = CONTENT_KEYS.roomDirectory;
 
@@ -19,8 +23,16 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { roomName, description, floor, imageUrl, fileUrl, qrCodeUrl, displayOrder, published } = body;
+    const { roomName, description, floor, imageUrl, fileUrl, displayOrder, published } = body;
     if (!roomName) return NextResponse.json({ success: false, message: "Room name required" }, { status: 400 });
+
+    // Server-side QR generation — always uses public URL, never localhost
+    const qrTarget = fileUrl || imageUrl || null;
+    let qrCodeUrl: string | null = null;
+    if (qrTarget) {
+      const requestBase = getBaseUrlFromRequest(req);
+      qrCodeUrl = await generateFileQrUrl(qrTarget, requestBase);
+    }
 
     const id = await createItem(fileKey, mongoCollection, {
       roomName: roomName.trim(),
@@ -28,11 +40,13 @@ export async function POST(req: NextRequest) {
       floor: floor?.trim() || null,
       imageUrl: imageUrl || null,
       fileUrl: fileUrl || null,
-      qrCodeUrl: qrCodeUrl || null,
+      qrCodeUrl,
       displayOrder: Number(displayOrder) || 0,
       published: published !== false,
     });
-    return NextResponse.json({ success: true, id, message: "Room saved!" });
+
+    safeRevalidate("/", "/admin/room-directory");
+    return NextResponse.json({ success: true, id, qrCodeUrl, message: "Room saved!" });
   } catch {
     return NextResponse.json({ success: false, message: "Failed to save" }, { status: 500 });
   }
@@ -41,8 +55,16 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
-    const { id, roomName, description, floor, imageUrl, fileUrl, qrCodeUrl, displayOrder, published } = body;
+    const { id, roomName, description, floor, imageUrl, fileUrl, displayOrder, published } = body;
     if (!id) return NextResponse.json({ success: false, message: "ID required" }, { status: 400 });
+
+    // Server-side QR generation — always uses public URL, never localhost
+    const qrTarget = fileUrl || imageUrl || null;
+    let qrCodeUrl: string | null = null;
+    if (qrTarget) {
+      const requestBase = getBaseUrlFromRequest(req);
+      qrCodeUrl = await generateFileQrUrl(qrTarget, requestBase);
+    }
 
     const ok = await updateItem(fileKey, mongoCollection, id, {
       roomName: roomName?.trim() ?? "",
@@ -50,11 +72,13 @@ export async function PUT(req: NextRequest) {
       floor: floor?.trim() || null,
       imageUrl: imageUrl || null,
       fileUrl: fileUrl || null,
-      qrCodeUrl: qrCodeUrl || null,
+      qrCodeUrl,
       displayOrder: Number(displayOrder) || 0,
       published: published !== false,
     });
-    return NextResponse.json({ success: ok, message: ok ? "Updated!" : "Not found" });
+
+    safeRevalidate("/", "/admin/room-directory");
+    return NextResponse.json({ success: ok, qrCodeUrl, message: ok ? "Updated!" : "Not found" });
   } catch {
     return NextResponse.json({ success: false, message: "Failed to update" }, { status: 500 });
   }

@@ -901,6 +901,8 @@ export type RoomDirectoryItem = {
 	description: string | null;
 	floor: string | null;
 	imageUrl: string | null;
+	fileUrl: string | null;
+	qrCodeUrl: string | null;
 	displayOrder: number;
 	published: boolean;
 };

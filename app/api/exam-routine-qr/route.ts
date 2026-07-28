@@ -77,6 +77,31 @@ export async function PUT(req: NextRequest) {
   }
 }
 
+export async function PATCH(req: NextRequest) {
+  // Regenerate QR from existing stored fileUrl — fixes stale localhost QRs without re-uploading.
+  try {
+    const body = await req.json();
+    const { id } = body;
+    if (!id) return NextResponse.json({ success: false, message: "ID required" }, { status: 400 });
+
+    const items = await listItems(fileKey, mongoCollection);
+    const item = items.find((i) => String(i.id) === String(id));
+    if (!item) return NextResponse.json({ success: false, message: "Record not found" }, { status: 404 });
+
+    const fileUrl = item.fileUrl as string | null;
+    if (!fileUrl) return NextResponse.json({ success: false, message: "No file uploaded yet — upload a file first." }, { status: 400 });
+
+    const requestBase = getBaseUrlFromRequest(req);
+    const qrCodeUrl = await generateFileQrUrl(fileUrl, requestBase);
+    await updateItem(fileKey, mongoCollection, id, { qrCodeUrl });
+
+    safeRevalidate("/", "/admin/exam-routine-qr");
+    return NextResponse.json({ success: true, qrCodeUrl, message: "QR regenerated successfully!" });
+  } catch (e) {
+    return NextResponse.json({ success: false, message: e instanceof Error ? e.message : "Failed to regenerate" }, { status: 500 });
+  }
+}
+
 export async function DELETE(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");

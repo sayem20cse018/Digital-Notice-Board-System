@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPublicSiteUrl, getBaseUrlFromRequest } from "@/app/lib/qr-utils";
+import { getPublicSiteUrl, getBaseUrlFromRequest, buildExternalQrUrl } from "@/app/lib/qr-utils";
 
 export const runtime = "nodejs";
 
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const requestBase = getBaseUrlFromRequest(request);
     const base = await getPublicSiteUrl(requestBase);
     const url = `${base}/view/results`;
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(url)}`;
+    const qrCodeUrl = buildExternalQrUrl(url);
 
     return NextResponse.json({ success: true, data: { url, qrCodeUrl } });
   } catch (error) {

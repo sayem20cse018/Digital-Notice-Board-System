@@ -22,6 +22,63 @@ type Props = {
   deleteAction: () => Promise<{ success: boolean; message: string }>;
 };
 
+function SectionCard({
+  icon,
+  title,
+  children,
+}: {
+  icon: string;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div className="flex items-center gap-3 border-b border-slate-100 bg-slate-50 px-5 py-3">
+        <span className="text-lg leading-none">{icon}</span>
+        <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-wide">{title}</h2>
+      </div>
+      <div className="space-y-4 p-5">{children}</div>
+    </div>
+  );
+}
+
+function FieldLabel({ children, hint }: { children: React.ReactNode; hint?: string }) {
+  return (
+    <div className="mb-1">
+      <label className="block text-sm font-medium text-slate-700">{children}</label>
+      {hint && <p className="mt-0.5 text-xs text-slate-500">{hint}</p>}
+    </div>
+  );
+}
+
+function TextInput({
+  name,
+  defaultValue,
+  disabled,
+  placeholder,
+  type = "text",
+  required,
+}: {
+  name: string;
+  defaultValue?: string | number;
+  disabled?: boolean;
+  placeholder?: string;
+  type?: string;
+  required?: boolean;
+}) {
+  return (
+    <input
+      name={name}
+      type={type}
+      defaultValue={defaultValue}
+      placeholder={placeholder}
+      required={required}
+      disabled={disabled}
+      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-400"
+    />
+  );
+}
+
 export default function SettingsForm({ initial, saveAction, deleteAction }: Props) {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -53,10 +110,8 @@ export default function SettingsForm({ initial, saveAction, deleteAction }: Prop
 
     try {
       const result = await saveAction(formData);
-      setMessage({
-        type: result.success ? "success" : "error",
-        text: result.message,
-      });
+      setMessage({ type: result.success ? "success" : "error", text: result.message });
+      if (result.success) window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
       setMessage({ type: "error", text: "Save failed. Please try again." });
     } finally {
@@ -66,19 +121,12 @@ export default function SettingsForm({ initial, saveAction, deleteAction }: Prop
 
   async function handleDelete() {
     if (!confirm("Reset all department settings to default values?")) return;
-
     setLoading(true);
     setMessage(null);
-
     try {
       const result = await deleteAction();
-      setMessage({
-        type: result.success ? "success" : "error",
-        text: result.message,
-      });
-      if (result.success) {
-        window.location.reload();
-      }
+      setMessage({ type: result.success ? "success" : "error", text: result.message });
+      if (result.success) window.location.reload();
     } catch {
       setMessage({ type: "error", text: "Reset failed. Please try again." });
     } finally {
@@ -87,171 +135,151 @@ export default function SettingsForm({ initial, saveAction, deleteAction }: Prop
   }
 
   return (
-    <div className="space-y-4">
+    <form onSubmit={handleSave} className="space-y-5">
       {message && <AdminFlashMessage type={message.type} text={message.text} />}
 
-      <form onSubmit={handleSave} className="rounded border  p-6 shadow-md space-y-5">
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">Department</h2>
-
-          <div>
-            <label className="block text-sm mb-1 font-medium">Department Name</label>
-            <input
-              name="departmentName"
-              defaultValue={initial.departmentName}
-              required
-              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={loading}
-            />
-          </div>
-
+      {/* ── Department ── */}
+      <SectionCard icon="🏫" title="Department">
+        <div>
+          <FieldLabel>Department Name</FieldLabel>
+          <TextInput name="departmentName" defaultValue={initial.departmentName} required disabled={loading} />
+        </div>
+        <div>
+          <FieldLabel hint="Shown in the display board header.">Department Logo</FieldLabel>
           <ImageUpload
             name="logoUrl"
             label="Department Logo"
             currentImage={initial.logoUrl || null}
             onImageChange={setDeptLogo}
           />
-        </section>
+        </div>
+      </SectionCard>
 
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">University</h2>
-
-          <div>
-            <label className="block text-sm mb-1 font-medium">University Name</label>
-            <input
-              name="universityName"
-              defaultValue={initial.universityName}
-              required
-              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={loading}
-            />
-          </div>
-
+      {/* ── University ── */}
+      <SectionCard icon="🎓" title="University">
+        <div>
+          <FieldLabel>University Name</FieldLabel>
+          <TextInput name="universityName" defaultValue={initial.universityName} required disabled={loading} />
+        </div>
+        <div>
+          <FieldLabel hint="Shown alongside the department logo.">University Logo</FieldLabel>
           <ImageUpload
             name="universityLogoUrl"
             label="University Logo"
             currentImage={initial.universityLogoUrl || null}
             onImageChange={setUniLogo}
           />
-        </section>
+        </div>
+      </SectionCard>
 
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">Header Background Slideshow</h2>
-          <p className="text-sm text-gray-100">Upload up to 4 images for the header background slideshow.</p>
-
-          {[0, 1, 2, 3].map((idx) => (
+      {/* ── Header Background Slideshow ── */}
+      <SectionCard icon="🖼️" title="Header Background Slideshow">
+        <p className="text-sm text-slate-500">
+          Upload up to 4 images that cycle as the header background on the display board.
+        </p>
+        {[0, 1, 2, 3].map((idx) => (
+          <div key={idx}>
+            <FieldLabel>Background Image {idx + 1}</FieldLabel>
             <ImageUpload
-              key={idx}
               name={`headerBg${idx}`}
               label={`Background Image ${idx + 1}`}
               currentImage={headerBgs[idx] || null}
               onImageChange={(url) => setHeaderBg(idx, url)}
             />
-          ))}
-
-          <div>
-            <label className="block text-sm mb-1 font-medium">Slideshow Interval (seconds)</label>
-            <input
-              name="headerSlideshowInterval"
-              type="number"
-              min={3}
-              max={60}
-              defaultValue={initial.headerSlideshowInterval}
-              className="w-full border rounded px-3 py-2"
-              disabled={loading}
-            />
           </div>
-        </section>
-
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">Highlight News Slideshow</h2>
-          <div>
-            <label className="block text-sm mb-1 font-medium">Default Slide Duration (seconds)</label>
-            <input
-              name="highlightSlideDuration"
-              type="number"
-              min={2}
-              max={120}
-              defaultValue={initial.highlightSlideDuration}
-              className="w-full border rounded px-3 py-2"
-              disabled={loading}
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Each highlight news item can have its own duration — edit individual items in the Highlight News section.
-            </p>
-          </div>
-        </section>
-
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">QR Code Settings</h2>
-          <div>
-            <label className="block text-sm mb-1 font-medium">Public Site URL (for QR codes)</label>
-            <input
-              name="publicSiteUrl"
-              type="url"
-              defaultValue={initial.publicSiteUrl}
-              placeholder="http://192.168.1.5:3000"
-              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={loading}
-            />
-            <p className="mt-1 text-xs text-slate-600">
-              When a QR code is scanned on a phone, it will open this URL. The PC and phone must be on the same Wi-Fi network. Dev server: <code className="text-xs">npm run dev</code>
-            </p>
-          </div>
-        </section>
-
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">Marquee</h2>
-          <div>
-            <label className="block text-sm mb-1 font-medium">Welcome Marquee Text</label>
-            <textarea
-              name="marqueeText"
-              defaultValue={initial.marqueeText}
-              rows={3}
-              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={loading}
-            />
-            <p className="mt-1 text-xs text-gray-500">This text scrolls in the Welcome bar at the top of the display board.</p>
-          </div>
-        </section>
-
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900 border-b pb-2 flex items-center gap-2">
-            <span className="text-red-600">⚠</span> Emergency Notice
-          </h2>
-          <p className="text-sm text-gray-600">
-            To post an emergency notice on the display board, go to{" "}
-            <a href="/admin/right-sidebar-notice" className="text-blue-600 underline font-medium">
-              Update Notice → Add Notice
-            </a>{" "}
-            and include the word <code className="bg-gray-100 px-1 rounded text-red-600 font-mono text-xs">emergency</code> or start with{" "}
-            <code className="bg-gray-100 px-1 rounded text-red-600 font-mono text-xs">⚠</code> in the title. The ticker bar will automatically flash red and show it as an emergency.
-          </p>
-          <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700">
-            <p className="font-semibold">Example:</p>
-            <p className="mt-1 font-mono text-xs">⚠ Class suspended today due to exam</p>
-            <p className="mt-1 font-mono text-xs">emergency: Lab closed for maintenance</p>
-          </div>
-        </section>
-
-        <div className="flex flex-wrap gap-3 pt-2">
-          <button
-            type="submit"
+        ))}
+        <div>
+          <FieldLabel hint="How long each background image is displayed (3–60 seconds).">
+            Slideshow Interval (seconds)
+          </FieldLabel>
+          <TextInput
+            name="headerSlideshowInterval"
+            type="number"
+            defaultValue={initial.headerSlideshowInterval}
             disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-5 py-2 rounded font-medium"
-          >
-            {loading ? "Saving..." : "Save Settings"}
-          </button>
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={loading}
-            className="border border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-50 px-5 py-2 rounded font-medium"
-          >
-            Reset to Default
-          </button>
+          />
         </div>
-      </form>
-    </div>
+      </SectionCard>
+
+      {/* ── Highlight News Slideshow ── */}
+      <SectionCard icon="📰" title="Highlight News Slideshow">
+        <div>
+          <FieldLabel hint="Each highlight news item can override this with its own duration.">
+            Default Slide Duration (seconds)
+          </FieldLabel>
+          <TextInput
+            name="highlightSlideDuration"
+            type="number"
+            defaultValue={initial.highlightSlideDuration}
+            disabled={loading}
+          />
+        </div>
+      </SectionCard>
+
+      {/* ── QR Code Settings ── */}
+      <SectionCard icon="📱" title="QR Code Settings">
+        <div>
+          <FieldLabel>Public Site URL</FieldLabel>
+          <TextInput
+            name="publicSiteUrl"
+            type="url"
+            defaultValue={initial.publicSiteUrl}
+            placeholder="http://192.168.1.5:3000"
+            disabled={loading}
+          />
+          <div className="mt-2 rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-slate-700 space-y-1">
+            <p className="font-semibold text-blue-800">Why this matters</p>
+            <p>
+              When a QR code is scanned on a phone, it opens this URL. The PC running the server
+              and the phone <strong>must be on the same Wi-Fi network</strong>.
+            </p>
+            <p>
+              Set this to your PC&apos;s LAN IP address, e.g.{" "}
+              <code className="rounded bg-blue-100 px-1 font-mono">http://192.168.1.5:3000</code>.
+              Leave blank to let the server auto-detect.
+            </p>
+            <p>
+              After changing this URL, re-save any QR pages (Class Routine, Exam Routine, etc.)
+              so they regenerate with the new URL.
+            </p>
+          </div>
+        </div>
+      </SectionCard>
+
+      {/* ── Welcome Marquee ── */}
+      <SectionCard icon="📣" title="Welcome Marquee">
+        <div>
+          <FieldLabel hint="This text scrolls in the ticker bar at the top of the display board.">
+            Marquee Text
+          </FieldLabel>
+          <textarea
+            name="marqueeText"
+            defaultValue={initial.marqueeText}
+            rows={3}
+            disabled={loading}
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50"
+          />
+        </div>
+      </SectionCard>
+
+      {/* ── Actions ── */}
+      <div className="flex flex-wrap items-center gap-3 pt-1">
+        <button
+          type="submit"
+          disabled={loading}
+          className="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:bg-slate-300 disabled:text-slate-500 transition"
+        >
+          {loading ? "Saving…" : "Save Settings"}
+        </button>
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={loading}
+          className="rounded-lg border border-red-200 px-5 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 transition"
+        >
+          Reset to Default
+        </button>
+      </div>
+    </form>
   );
 }

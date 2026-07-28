@@ -105,12 +105,25 @@ function RoomDirectoryTile({ rooms }: { rooms: RoomDirectoryItem[] }) {
             <div className="min-w-0 flex-1">
               <p className="line-clamp-1 text-sm font-bold text-slate-900">{cur?.roomName}</p>
               {cur?.floor && <p className="text-[10px] text-slate-500">{cur.floor}</p>}
+              {cur?.description && (
+                <p className="mt-0.5 line-clamp-1 text-[10px] text-slate-400">{cur.description}</p>
+              )}
+              {rooms.length > 1 && (
+                <p className="mt-0.5 text-[9px] text-teal-500">{idx + 1} / {rooms.length} rooms</p>
+              )}
             </div>
-            {cur?.qrCodeUrl && (
-              <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-                <Image src={cur.qrCodeUrl} alt="Room QR" fill className="object-contain p-0.5" unoptimized />
+            {cur?.qrCodeUrl ? (
+              <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
+                <div className="relative h-12 w-12 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                  <Image src={cur.qrCodeUrl} alt="Room QR" fill className="object-contain p-0.5" unoptimized />
+                </div>
+                <span className="text-[8px] text-slate-400">Scan</span>
               </div>
-            )}
+            ) : cur?.imageUrl ? (
+              <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg border border-slate-200">
+                <Image src={cur.imageUrl} alt={cur.roomName} fill className="object-cover" unoptimized />
+              </div>
+            ) : null}
           </>
         )}
       </SlideContent>

@@ -171,11 +171,11 @@ export default async function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Department Settings</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Department, logos, header background slideshow, highlight duration, এবং marquee manage করুন।
+    <div className="space-y-8">
+      <div className="border-b border-slate-200 pb-4">
+        <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Manage department info, logos, display options, QR URL, and account credentials.
         </p>
       </div>
 
