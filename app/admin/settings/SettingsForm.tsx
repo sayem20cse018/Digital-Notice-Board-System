@@ -84,19 +84,6 @@ export default function SettingsForm({ initial, saveAction, deleteAction }: Prop
   const [loading, setLoading] = useState(false);
   const [deptLogo, setDeptLogo] = useState(initial.logoUrl);
   const [uniLogo, setUniLogo] = useState(initial.universityLogoUrl);
-  const [headerBgs, setHeaderBgs] = useState<string[]>(
-    initial.headerBackgroundImages.length > 0
-      ? initial.headerBackgroundImages
-      : ["", "", "", ""],
-  );
-
-  function setHeaderBg(index: number, url: string) {
-    setHeaderBgs((prev) => {
-      const next = [...prev];
-      next[index] = url;
-      return next;
-    });
-  }
 
   async function handleSave(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -106,7 +93,9 @@ export default function SettingsForm({ initial, saveAction, deleteAction }: Prop
     const formData = new FormData(e.currentTarget);
     formData.set("logoUrl", deptLogo);
     formData.set("universityLogoUrl", uniLogo);
-    formData.set("headerBackgroundImages", JSON.stringify(headerBgs.filter((u) => u.trim())));
+    // Keep these fields with existing values so they aren't lost
+    formData.set("headerBackgroundImages", JSON.stringify(initial.headerBackgroundImages));
+    formData.set("publicSiteUrl", initial.publicSiteUrl || "");
 
     try {
       const result = await saveAction(formData);
@@ -172,40 +161,11 @@ export default function SettingsForm({ initial, saveAction, deleteAction }: Prop
         </div>
       </SectionCard>
 
-      {/* ── Header Background Slideshow ── */}
-      <SectionCard icon="🖼️" title="Header Background Slideshow">
-        <p className="text-sm text-slate-500">
-          Upload up to 4 images that cycle as the header background on the display board.
-        </p>
-        {[0, 1, 2, 3].map((idx) => (
-          <div key={idx}>
-            <FieldLabel>Background Image {idx + 1}</FieldLabel>
-            <ImageUpload
-              name={`headerBg${idx}`}
-              label={`Background Image ${idx + 1}`}
-              currentImage={headerBgs[idx] || null}
-              onImageChange={(url) => setHeaderBg(idx, url)}
-            />
-          </div>
-        ))}
-        <div>
-          <FieldLabel hint="How long each background image is displayed (3–60 seconds).">
-            Slideshow Interval (seconds)
-          </FieldLabel>
-          <TextInput
-            name="headerSlideshowInterval"
-            type="number"
-            defaultValue={initial.headerSlideshowInterval}
-            disabled={loading}
-          />
-        </div>
-      </SectionCard>
-
-      {/* ── Highlight News Slideshow ── */}
-      <SectionCard icon="📰" title="Highlight News Slideshow">
+      {/* ── Highlight News Duration ── */}
+      <SectionCard icon="📰" title="Highlight News">
         <div>
           <FieldLabel hint="Each highlight news item can override this with its own duration.">
-            Default Slide Duration (seconds)
+            Slide Duration (seconds)
           </FieldLabel>
           <TextInput
             name="highlightSlideDuration"
@@ -213,36 +173,6 @@ export default function SettingsForm({ initial, saveAction, deleteAction }: Prop
             defaultValue={initial.highlightSlideDuration}
             disabled={loading}
           />
-        </div>
-      </SectionCard>
-
-      {/* ── QR Code Settings ── */}
-      <SectionCard icon="📱" title="QR Code Settings">
-        <div>
-          <FieldLabel>Public Site URL</FieldLabel>
-          <TextInput
-            name="publicSiteUrl"
-            type="url"
-            defaultValue={initial.publicSiteUrl}
-            placeholder="http://192.168.1.5:3000"
-            disabled={loading}
-          />
-          <div className="mt-2 rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-slate-700 space-y-1">
-            <p className="font-semibold text-blue-800">Why this matters</p>
-            <p>
-              When a QR code is scanned on a phone, it opens this URL. The PC running the server
-              and the phone <strong>must be on the same Wi-Fi network</strong>.
-            </p>
-            <p>
-              Set this to your PC&apos;s LAN IP address, e.g.{" "}
-              <code className="rounded bg-blue-100 px-1 font-mono">http://192.168.1.5:3000</code>.
-              Leave blank to let the server auto-detect.
-            </p>
-            <p>
-              After changing this URL, re-save any QR pages (Class Routine, Exam Routine, etc.)
-              so they regenerate with the new URL.
-            </p>
-          </div>
         </div>
       </SectionCard>
 
