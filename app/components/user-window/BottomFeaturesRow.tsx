@@ -84,6 +84,17 @@ function ProjectShowcaseTile({ items }: { items: ProjectShowcaseItem[] }) {
 function RoomDirectoryTile({ rooms }: { rooms: RoomDirectoryItem[] }) {
   const [idx, setIdx] = useState(0);
   const [sliding, setSliding] = useState(false);
+  const [masterQr, setMasterQr] = useState<string | null>(null);
+
+  // Fetch the master QR once (encodes /view/rooms with correct public URL)
+  useEffect(() => {
+    fetch("/api/rooms-qr")
+      .then((r) => r.json())
+      .then((d) => { if (d.success && d.data?.qrCodeUrl) setMasterQr(d.data.qrCodeUrl); })
+      .catch(() => {});
+  }, []);
+
+  // Auto-slide the text info only
   useEffect(() => {
     if (rooms.length <= 1) return;
     const t = setInterval(() => {
@@ -92,41 +103,53 @@ function RoomDirectoryTile({ rooms }: { rooms: RoomDirectoryItem[] }) {
     }, 3500);
     return () => clearInterval(t);
   }, [rooms.length]);
+
   const cur = rooms[idx];
 
   return (
     <CardShell>
       <SectionHeader icon="🗺️" title="Room Directory" bg="linear-gradient(135deg,#0f766e,#0d9488)" />
-      <SlideContent sliding={sliding}>
-        {rooms.length === 0 ? (
-          <p className="text-xs text-slate-400">No rooms added.</p>
-        ) : (
-          <>
-            <div className="min-w-0 flex-1">
+      <div className="flex flex-1 min-h-0 items-center gap-2 px-3 py-2">
+        {/* Sliding text — left side */}
+        <div
+          className="min-w-0 flex-1 transition-all duration-300"
+          style={{
+            opacity: sliding ? 0 : 1,
+            transform: sliding ? "translateX(16px)" : "translateX(0)",
+          }}
+        >
+          {rooms.length === 0 ? (
+            <p className="text-xs text-slate-400">No rooms added.</p>
+          ) : (
+            <>
               <p className="line-clamp-1 text-sm font-bold text-slate-900">{cur?.roomName}</p>
-              {cur?.floor && <p className="text-[10px] text-slate-500">{cur.floor}</p>}
+              {cur?.floor && <p className="text-[10px] text-slate-500">📍 {cur.floor}</p>}
               {cur?.description && (
                 <p className="mt-0.5 line-clamp-1 text-[10px] text-slate-400">{cur.description}</p>
               )}
               {rooms.length > 1 && (
-                <p className="mt-0.5 text-[9px] text-teal-500">{idx + 1} / {rooms.length} rooms</p>
+                <p className="mt-0.5 text-[9px] text-teal-500 font-medium">{idx + 1} / {rooms.length} rooms</p>
               )}
+            </>
+          )}
+        </div>
+
+        {/* Fixed master QR — right side, always visible */}
+        <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
+          {masterQr ? (
+            <>
+              <div className="relative h-12 w-12 overflow-hidden rounded-lg border-2 border-teal-200 bg-white shadow-sm">
+                <Image src={masterQr} alt="Room Directory QR" fill className="object-contain p-0.5" unoptimized />
+              </div>
+              <span className="text-[8px] text-teal-600 font-semibold">Scan All</span>
+            </>
+          ) : (
+            <div className="h-12 w-12 rounded-lg border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center">
+              <span className="text-[8px] text-slate-400">QR</span>
             </div>
-            {cur?.qrCodeUrl ? (
-              <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
-                <div className="relative h-12 w-12 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-                  <Image src={cur.qrCodeUrl} alt="Room QR" fill className="object-contain p-0.5" unoptimized />
-                </div>
-                <span className="text-[8px] text-slate-400">Scan</span>
-              </div>
-            ) : cur?.imageUrl ? (
-              <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg border border-slate-200">
-                <Image src={cur.imageUrl} alt={cur.roomName} fill className="object-cover" unoptimized />
-              </div>
-            ) : null}
-          </>
-        )}
-      </SlideContent>
+          )}
+        </div>
+      </div>
     </CardShell>
   );
 }
