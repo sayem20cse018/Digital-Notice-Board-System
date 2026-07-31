@@ -122,6 +122,21 @@ export async function generateQrCodeImage(
 }
 
 /**
+ * Generate a QR that points to /view/file/{id}?type=... page.
+ * This is the correct approach for file-type QRs — the view page
+ * handles the file display and works on any device.
+ */
+export async function generateViewPageQr(
+	id: string,
+	type: "class-routine" | "exam-routine" | "help-office" | "help-crs",
+	requestBase?: string | null,
+): Promise<string> {
+	const base = await getPublicSiteUrl(requestBase);
+	const url = `${base}/view/file/${id}?type=${type}`;
+	return buildExternalQrUrl(url);
+}
+
+/**
  * Generate a QR code URL for a file (routine, help center, etc.).
  * If fileUrl is relative, prepend the public base URL first.
  * Returns an external QR image URL — no file system writes.

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CONTENT_KEYS, createItem, deleteItem, listItems, updateItem } from "@/app/lib/content-store";
-import { generateFileQrUrl, getBaseUrlFromRequest } from "@/app/lib/qr-utils";
+import { generateViewPageQr, getBaseUrlFromRequest } from "@/app/lib/qr-utils";
 import { safeRevalidate } from "@/app/lib/revalidate";
 
 export const runtime = "nodejs";
@@ -42,11 +42,12 @@ export async function POST(request: NextRequest) {
 			published: published !== false,
 		});
 
-		// Generate QR using external service — no filesystem write
+		// QR points to /view/file/{id}?type=help-office or help-crs
 		let qrCodeUrl: string | null = null;
 		if (fileUrl?.trim()) {
+			const qrType = ct === "crs" ? "help-crs" : "help-office";
 			const requestBase = getBaseUrlFromRequest(request);
-			qrCodeUrl = await generateFileQrUrl(fileUrl.trim(), requestBase);
+			qrCodeUrl = await generateViewPageQr(id, qrType, requestBase);
 			await updateItem(fileKey, mongoCollection, id, { qrCodeUrl });
 		}
 
@@ -82,11 +83,11 @@ export async function PUT(request: NextRequest) {
 			published: Boolean(published),
 		});
 
-		// Regenerate QR using external service
 		let qrCodeUrl: string | null = null;
 		if (fileUrl?.trim()) {
+			const qrType = ct === "crs" ? "help-crs" : "help-office";
 			const requestBase = getBaseUrlFromRequest(request);
-			qrCodeUrl = await generateFileQrUrl(fileUrl.trim(), requestBase);
+			qrCodeUrl = await generateViewPageQr(String(id), qrType, requestBase);
 			await updateItem(fileKey, mongoCollection, String(id), { qrCodeUrl });
 		}
 

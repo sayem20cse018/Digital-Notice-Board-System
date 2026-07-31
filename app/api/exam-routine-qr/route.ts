@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listItems, listPublishedItems, createItem, updateItem, deleteItem, CONTENT_KEYS } from "@/app/lib/content-store";
-import { generateFileQrUrl, getBaseUrlFromRequest } from "@/app/lib/qr-utils";
+import { generateViewPageQr, getBaseUrlFromRequest } from "@/app/lib/qr-utils";
 import { safeRevalidate } from "@/app/lib/revalidate";
 
 export const runtime = "nodejs";
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     });
 
     const requestBase = getBaseUrlFromRequest(req);
-    const qrCodeUrl = await generateFileQrUrl(fileUrl, requestBase);
+    const qrCodeUrl = await generateViewPageQr(id, "exam-routine", requestBase);
     await updateItem(fileKey, mongoCollection, id, { qrCodeUrl });
 
     safeRevalidate("/", "/admin/exam-routine-qr");
@@ -63,12 +63,9 @@ export async function PUT(req: NextRequest) {
       published: published !== false,
     });
 
-    let qrCodeUrl: string | null = null;
-    if (fileUrl) {
-      const requestBase = getBaseUrlFromRequest(req);
-      qrCodeUrl = await generateFileQrUrl(fileUrl, requestBase);
-      await updateItem(fileKey, mongoCollection, id, { qrCodeUrl });
-    }
+    const requestBase = getBaseUrlFromRequest(req);
+    const qrCodeUrl = await generateViewPageQr(id, "exam-routine", requestBase);
+    await updateItem(fileKey, mongoCollection, id, { qrCodeUrl });
 
     safeRevalidate("/", "/admin/exam-routine-qr");
     return NextResponse.json({ success: true, qrCodeUrl, message: "Updated!" });
@@ -78,7 +75,6 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  // Regenerate QR from existing stored fileUrl — fixes stale localhost QRs without re-uploading.
   try {
     const body = await req.json();
     const { id } = body;
@@ -87,18 +83,16 @@ export async function PATCH(req: NextRequest) {
     const items = await listItems(fileKey, mongoCollection);
     const item = items.find((i) => String(i.id) === String(id));
     if (!item) return NextResponse.json({ success: false, message: "Record not found" }, { status: 404 });
-
-    const fileUrl = item.fileUrl as string | null;
-    if (!fileUrl) return NextResponse.json({ success: false, message: "No file uploaded yet — upload a file first." }, { status: 400 });
+    if (!item.fileUrl) return NextResponse.json({ success: false, message: "No file uploaded yet." }, { status: 400 });
 
     const requestBase = getBaseUrlFromRequest(req);
-    const qrCodeUrl = await generateFileQrUrl(fileUrl, requestBase);
+    const qrCodeUrl = await generateViewPageQr(id, "exam-routine", requestBase);
     await updateItem(fileKey, mongoCollection, id, { qrCodeUrl });
 
     safeRevalidate("/", "/admin/exam-routine-qr");
-    return NextResponse.json({ success: true, qrCodeUrl, message: "QR regenerated successfully!" });
+    return NextResponse.json({ success: true, qrCodeUrl, message: "QR regenerated!" });
   } catch (e) {
-    return NextResponse.json({ success: false, message: e instanceof Error ? e.message : "Failed to regenerate" }, { status: 500 });
+    return NextResponse.json({ success: false, message: e instanceof Error ? e.message : "Failed" }, { status: 500 });
   }
 }
 
