@@ -135,16 +135,13 @@ function RoomDirectoryTile({ rooms }: { rooms: RoomDirectoryItem[] }) {
         </div>
 
         {/* Fixed master QR — right side, always visible */}
-        <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
+        <div className="flex-shrink-0">
           {masterQr ? (
-            <>
-              <div className="relative h-12 w-12 overflow-hidden rounded-lg border-2 border-teal-200 bg-white shadow-sm">
-                <Image src={masterQr} alt="Room Directory QR" fill className="object-contain p-0.5" unoptimized />
-              </div>
-              <span className="text-[8px] text-teal-600 font-semibold">Scan All</span>
-            </>
+            <div className="relative h-14 w-14 overflow-hidden rounded-lg border-2 border-teal-200 bg-white shadow-sm">
+              <Image src={masterQr} alt="Room Directory QR" fill className="object-contain p-0.5" unoptimized />
+            </div>
           ) : (
-            <div className="h-12 w-12 rounded-lg border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center">
+            <div className="h-14 w-14 rounded-lg border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center">
               <span className="text-[8px] text-slate-400">QR</span>
             </div>
           )}
