@@ -17,28 +17,35 @@ import {
   getEventsBoard,
 } from "@/app/lib/store";
 import { getAdminPreferences } from "@/app/lib/display-settings";
+import { DEFAULT_ADMIN_PREFERENCES } from "@/app/lib/display-config";
 
 export const dynamic = "force-dynamic";
 
+// Helper — returns value or fallback if the promise rejected
+function settled<T>(result: PromiseSettledResult<T>, fallback: T): T {
+  return result.status === "fulfilled" ? result.value : fallback;
+}
+
 export default async function Home() {
+  // Use allSettled so a single DB failure never crashes the whole page
   const [
-    settings,
-    preferences,
-    bestAlumni,
-    bestProgrammers,
-    teacherList,
-    highlightNews,
-    secureResults,
-    notices,
-    helpCenter,
-    researchers,
-    classRoutineQrData,
-    examRoutineQrData,
-    projectShowcase,
-    roomDirectory,
-    aboutUs,
-    events,
-  ] = await Promise.all([
+    settingsR,
+    preferencesR,
+    bestAlumniR,
+    bestProgrammersR,
+    teacherListR,
+    highlightNewsR,
+    secureResultsR,
+    noticesR,
+    helpCenterR,
+    researchersR,
+    classRoutineQrR,
+    examRoutineQrR,
+    projectShowcaseR,
+    roomDirectoryR,
+    aboutUsR,
+    eventsR,
+  ] = await Promise.allSettled([
     getDepartmentSettings(),
     getAdminPreferences(),
     getBestAlumni(),
@@ -56,6 +63,23 @@ export default async function Home() {
     getAboutUs(),
     getEventsBoard(),
   ]);
+
+  const settings        = settled(settingsR, null);
+  const preferences     = settled(preferencesR, DEFAULT_ADMIN_PREFERENCES);
+  const bestAlumni      = settled(bestAlumniR, []);
+  const bestProgrammers = settled(bestProgrammersR, []);
+  const teacherList     = settled(teacherListR, null);
+  const highlightNews   = settled(highlightNewsR, []);
+  const secureResults   = settled(secureResultsR, []);
+  const notices         = settled(noticesR, []);
+  const helpCenter      = settled(helpCenterR, []);
+  const researchers     = settled(researchersR, []);
+  const classRoutineQrData = settled(classRoutineQrR, null);
+  const examRoutineQrData  = settled(examRoutineQrR, null);
+  const projectShowcase = settled(projectShowcaseR, []);
+  const roomDirectory   = settled(roomDirectoryR, []);
+  const aboutUs         = settled(aboutUsR, null);
+  const events          = settled(eventsR, []);
 
   const highlightDuration = settings?.highlightSlideDuration ?? 5;
 
