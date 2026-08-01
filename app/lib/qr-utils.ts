@@ -98,6 +98,17 @@ export function buildExternalQrUrl(targetUrl: string, size = 400): string {
 	return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(targetUrl)}&color=1e3a8a&bgcolor=ffffff&margin=10`;
 }
 
+/**
+ * Generate a QR that points to /view/routine/class — the live routine table page.
+ */
+export async function generateRoutinePageQr(
+	requestBase?: string | null,
+): Promise<string> {
+	const base = await getPublicSiteUrl(requestBase);
+	const url = `${base}/view/routine/class`;
+	return buildExternalQrUrl(url);
+}
+
 export async function getSecureViewUrl(
 	type: "result" | "teacher-list",
 	id: string,

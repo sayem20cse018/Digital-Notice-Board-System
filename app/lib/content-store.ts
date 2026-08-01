@@ -217,6 +217,8 @@ export const CONTENT_KEYS = {
 	teacherList: { fileKey: "teacher-list", mongoCollection: "TeacherList" },
 	classRoutineQr: { fileKey: "class-routine-qr", mongoCollection: "ClassRoutineQr" },
 	examRoutineQr: { fileKey: "exam-routine-qr", mongoCollection: "ExamRoutineQr" },
+	classRoutineSlots: { fileKey: "class-routine-slots", mongoCollection: "ClassRoutineSlot" },
+	examRoutineSlots: { fileKey: "exam-routine-slots", mongoCollection: "ExamRoutineSlot" },
 	projectShowcase: { fileKey: "project-showcase", mongoCollection: "ProjectShowcase" },
 	roomDirectory: { fileKey: "room-directory", mongoCollection: "RoomDirectory" },
 	aboutUs: { fileKey: "about-us", mongoCollection: "AboutUs" },

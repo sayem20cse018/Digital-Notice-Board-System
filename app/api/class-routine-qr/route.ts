@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listItems, listPublishedItems, createItem, updateItem, deleteItem, CONTENT_KEYS } from "@/app/lib/content-store";
-import { generateViewPageQr, getBaseUrlFromRequest } from "@/app/lib/qr-utils";
+import { generateRoutinePageQr, generateViewPageQr, getBaseUrlFromRequest } from "@/app/lib/qr-utils";
 import { safeRevalidate } from "@/app/lib/revalidate";
 
 export const runtime = "nodejs";
@@ -40,13 +40,13 @@ export async function POST(req: NextRequest) {
       displayOrder: 0,
     });
 
-    // QR points to /view/file/{id}?type=class-routine — shows file in a proper viewer
     const requestBase = getBaseUrlFromRequest(req);
-    const qrCodeUrl = await generateViewPageQr(id, "class-routine", requestBase);
+    // QR points to /view/routine/class (editor-based) if slots exist, else /view/file/{id}
+    const qrCodeUrl = await generateRoutinePageQr(requestBase);
     await updateItem(fileKey, mongoCollection, id, { qrCodeUrl });
 
     safeRevalidate("/", "/admin/class-routine-qr");
-    return NextResponse.json({ success: true, id, qrCodeUrl, message: "Class Routine QR saved!" });
+    return NextResponse.json({ success: true, id, qrCodeUrl, message: "Class Routine saved!" });
   } catch (e) {
     return NextResponse.json({ success: false, message: e instanceof Error ? e.message : "Failed to save" }, { status: 500 });
   }
@@ -65,7 +65,7 @@ export async function PUT(req: NextRequest) {
     });
 
     const requestBase = getBaseUrlFromRequest(req);
-    const qrCodeUrl = await generateViewPageQr(id, "class-routine", requestBase);
+    const qrCodeUrl = await generateRoutinePageQr(requestBase);
     await updateItem(fileKey, mongoCollection, id, { qrCodeUrl });
 
     safeRevalidate("/", "/admin/class-routine-qr");
@@ -76,19 +76,14 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  // Regenerate QR without re-uploading
+  // Regenerate QR
   try {
     const body = await req.json();
     const { id } = body;
     if (!id) return NextResponse.json({ success: false, message: "ID required" }, { status: 400 });
 
-    const items = await listItems(fileKey, mongoCollection);
-    const item = items.find((i) => String(i.id) === String(id));
-    if (!item) return NextResponse.json({ success: false, message: "Record not found" }, { status: 404 });
-    if (!item.fileUrl) return NextResponse.json({ success: false, message: "No file uploaded yet." }, { status: 400 });
-
     const requestBase = getBaseUrlFromRequest(req);
-    const qrCodeUrl = await generateViewPageQr(id, "class-routine", requestBase);
+    const qrCodeUrl = await generateRoutinePageQr(requestBase);
     await updateItem(fileKey, mongoCollection, id, { qrCodeUrl });
 
     safeRevalidate("/", "/admin/class-routine-qr");

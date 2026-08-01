@@ -7,6 +7,7 @@ import AdminFlashMessage from "@/app/components/admin-panel/AdminFlashMessage";
 import { AdminFormCard } from "@/app/components/admin-panel/AdminCard";
 import { fetchJson } from "@/app/lib/fetch-json";
 import Image from "next/image";
+import RoutineEditor from "./RoutineEditor";
 
 type QrData = {
   id: string | null;
@@ -17,6 +18,7 @@ type QrData = {
 };
 
 export default function AdminClassRoutineQrPage() {
+  const [tab, setTab]         = useState<"editor" | "upload">("editor");
   const [data, setData]       = useState<QrData>({ id: null, title: "Class Routine", qrCodeUrl: null, fileUrl: null, published: true });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving]   = useState(false);
@@ -41,7 +43,6 @@ export default function AdminClassRoutineQrPage() {
     finally { setLoading(false); }
   }
 
-  // Clear the preview QR when a new file is picked — server generates the real one on save.
   function handleFileChange(url: string) {
     setFileUrl(url);
     setQrCodeUrl(null);
@@ -71,7 +72,7 @@ export default function AdminClassRoutineQrPage() {
       );
       if (result.success) {
         if (result.qrCodeUrl) setQrCodeUrl(result.qrCodeUrl);
-        setMessage({ type: "success", text: "Saved! QR is ready on the display board." });
+        setMessage({ type: "success", text: "Saved!" });
         setEditing(false);
         setFormKey((k) => k + 1);
         fetchData();
@@ -86,7 +87,6 @@ export default function AdminClassRoutineQrPage() {
     }
   }
 
-  // Regenerate QR from stored fileUrl using current publicSiteUrl — no re-upload needed.
   async function handleRegenerate() {
     if (!data.id) return;
     setRegen(true);
@@ -102,11 +102,11 @@ export default function AdminClassRoutineQrPage() {
       );
       if (result.success) {
         if (result.qrCodeUrl) setQrCodeUrl(result.qrCodeUrl);
-        setMessage({ type: "success", text: "QR regenerated! It now uses the current Public Site URL." });
+        setMessage({ type: "success", text: "QR regenerated!" });
         fetchData();
         setTimeout(() => setMessage(null), 4000);
       } else {
-        setMessage({ type: "error", text: result.message || "Regeneration failed" });
+        setMessage({ type: "error", text: result.message || "Failed" });
       }
     } catch {
       setMessage({ type: "error", text: "Network error" });
@@ -120,130 +120,151 @@ export default function AdminClassRoutineQrPage() {
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        title="Class Routine QR"
-        subtitle="Upload the routine file — QR code is generated server-side with the correct public URL so phones can scan it."
+        title="Class Routine"
+        subtitle="Edit the routine table directly, or upload a file. QR is auto-generated."
       />
       {message && <AdminFlashMessage type={message.type} text={message.text} />}
 
-      {/* Preview card */}
-      {data.id && !editing && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-5">
-          <div className="flex flex-wrap items-start gap-6">
-            {/* QR image */}
-            {qrCodeUrl ? (
-              <div className="relative h-32 w-32 flex-shrink-0 overflow-hidden rounded-lg border bg-white p-1 shadow">
-                <Image src={qrCodeUrl} alt="Class Routine QR" fill className="object-contain" unoptimized />
-              </div>
-            ) : (
-              <div className="flex h-32 w-32 flex-shrink-0 items-center justify-center rounded-lg border bg-white text-center text-xs text-gray-400 p-2">
-                No QR yet
-              </div>
-            )}
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-slate-200">
+        {([
+          { key: "editor", label: "📋 Routine Table Editor" },
+          { key: "upload", label: "📎 Upload File / QR" },
+        ] as const).map(t => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition ${
+              tab === t.key
+                ? "border-blue-600 text-blue-700"
+                : "border-transparent text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-            {/* Info */}
-            <div className="flex-1 space-y-1 min-w-0">
-              <p className="text-lg font-semibold text-gray-900">{data.title}</p>
-              {data.fileUrl && (
-                <a href={data.fileUrl} target="_blank" rel="noreferrer" className="text-sm text-blue-600 underline">
-                  View Routine File ↗
-                </a>
-              )}
-              <p className="text-sm text-gray-500">
-                Status:{" "}
-                {data.published
-                  ? <span className="font-medium text-green-600">Published</span>
-                  : <span className="text-red-500">Draft</span>}
-              </p>
-              {/* Regenerate hint */}
-              <p className="text-xs text-slate-400 pt-1">
-                If the QR doesn&apos;t open on your phone, click &quot;Regenerate QR&quot; after setting the correct Public Site URL in Settings.
-              </p>
-            </div>
-
-            {/* Actions */}
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={() => { setEditing(true); setFormKey((k) => k + 1); }}
-                className="rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 transition"
-              >
-                Edit
-              </button>
-              <button
-                onClick={handleRegenerate}
-                disabled={regen || !data.fileUrl}
-                className="rounded-lg border border-teal-300 bg-white px-4 py-2 text-sm font-medium text-teal-700 hover:bg-teal-50 disabled:opacity-50 transition"
-                title="Regenerate QR using the current Public Site URL from Settings"
-              >
-                {regen ? "Regenerating…" : "🔄 Regenerate QR"}
-              </button>
-            </div>
+      {/* ── EDITOR TAB ── */}
+      {tab === "editor" && (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-800">
+            <strong>How it works:</strong> Click any cell in the table to add or edit a class slot.
+            After editing, scan the <strong>Class Routine QR</strong> on the display board to see the
+            live routine on your phone at{" "}
+            <a href="/view/routine/class" target="_blank" rel="noreferrer" className="underline font-medium">
+              /view/routine/class ↗
+            </a>
           </div>
+          <RoutineEditor />
         </div>
       )}
 
-      {/* Form */}
-      {(!data.id || editing) && (
-        <AdminFormCard title={data.id ? "Update Class Routine" : "Setup Class Routine"}>
-          <form key={formKey} onSubmit={handleSubmit} className="max-w-lg space-y-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Title</label>
-              <input
-                name="title"
-                defaultValue={data.title}
-                className="w-full rounded border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:outline-none"
-                disabled={saving}
-              />
-            </div>
-
-            <div className="rounded-lg border-2 border-blue-200 bg-blue-50 p-4 space-y-3">
-              <p className="text-sm font-semibold text-blue-800">Upload Routine File — QR is generated server-side on save</p>
-              <FileUpload
-                name="fileUrl"
-                label="Routine File (PDF or Image)"
-                currentFile={editing ? data.fileUrl : null}
-                accept="image/*,.pdf"
-                onFileChange={handleFileChange}
-              />
-              {qrCodeUrl && (
-                <div className="flex items-center gap-4 rounded-lg border border-green-200 bg-green-50 p-3">
-                  <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded border bg-white shadow">
-                    <Image src={qrCodeUrl} alt="QR Preview" fill className="object-contain p-1" unoptimized />
+      {/* ── UPLOAD TAB ── */}
+      {tab === "upload" && (
+        <div className="space-y-6">
+          {/* Preview card */}
+          {data.id && !editing && (
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-5">
+              <div className="flex flex-wrap items-start gap-6">
+                {qrCodeUrl ? (
+                  <div className="relative h-32 w-32 flex-shrink-0 overflow-hidden rounded-lg border bg-white p-1 shadow">
+                    <Image src={qrCodeUrl} alt="Class Routine QR" fill className="object-contain" unoptimized />
                   </div>
-                  <div className="text-sm space-y-1">
-                    <p className="font-bold text-green-700">✓ QR ready — scannable from phone!</p>
-                    <p className="text-xs text-slate-500">Uses the Public Site URL from Settings.</p>
-                    <a href={qrCodeUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline">
-                      Open full size ↗
+                ) : (
+                  <div className="flex h-32 w-32 items-center justify-center rounded-lg border bg-white text-xs text-gray-400">
+                    No QR yet
+                  </div>
+                )}
+                <div className="flex-1 min-w-0 space-y-1">
+                  <p className="text-lg font-semibold text-gray-900">{data.title}</p>
+                  {data.fileUrl && (
+                    <a href={data.fileUrl} target="_blank" rel="noreferrer" className="text-sm text-blue-600 underline">
+                      View File ↗
                     </a>
-                  </div>
+                  )}
+                  <p className="text-sm text-gray-500">
+                    Status: {data.published
+                      ? <span className="font-medium text-green-600">Published</span>
+                      : <span className="text-red-500">Draft</span>}
+                  </p>
                 </div>
-              )}
-              {!qrCodeUrl && fileUrl && (
-                <p className="text-xs text-slate-500">QR will be generated when you click Save.</p>
-              )}
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => { setEditing(true); setFormKey(k => k + 1); }}
+                    className="rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 transition"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={handleRegenerate}
+                    disabled={regen || !data.fileUrl}
+                    className="rounded-lg border border-teal-300 bg-white px-4 py-2 text-sm font-medium text-teal-700 hover:bg-teal-50 disabled:opacity-50 transition"
+                  >
+                    {regen ? "Regenerating…" : "🔄 Regenerate QR"}
+                  </button>
+                </div>
+              </div>
             </div>
+          )}
 
-            <div className="flex items-center gap-2">
-              <input id="pub-crqr" name="published" type="checkbox" defaultChecked={data.published} disabled={saving} />
-              <label htmlFor="pub-crqr" className="text-sm text-gray-700">Published (show on display board)</label>
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                disabled={saving || !fileUrl}
-                className="rounded bg-blue-600 px-5 py-2 font-medium text-white hover:bg-blue-700 disabled:bg-gray-400"
-              >
-                {saving ? "Saving..." : data.id ? "Update" : "Save & Publish"}
-              </button>
-              {editing && (
-                <button type="button" onClick={() => setEditing(false)} className="rounded border px-4 py-2 text-sm text-gray-700">
-                  Cancel
-                </button>
-              )}
-            </div>
-          </form>
-        </AdminFormCard>
+          {(!data.id || editing) && (
+            <AdminFormCard title={data.id ? "Update Class Routine File" : "Upload Class Routine File"}>
+              <form key={formKey} onSubmit={handleSubmit} className="max-w-lg space-y-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Title</label>
+                  <input
+                    name="title"
+                    defaultValue={data.title}
+                    className="w-full rounded border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:outline-none"
+                    disabled={saving}
+                  />
+                </div>
+                <div className="rounded-lg border-2 border-blue-200 bg-blue-50 p-4 space-y-3">
+                  <p className="text-sm font-semibold text-blue-800">Upload Routine File (PDF or Image)</p>
+                  <FileUpload
+                    name="fileUrl"
+                    label="Routine File"
+                    currentFile={editing ? data.fileUrl : null}
+                    accept="image/*,.pdf"
+                    onFileChange={handleFileChange}
+                  />
+                  {qrCodeUrl && (
+                    <div className="flex items-center gap-4 rounded-lg border border-green-200 bg-green-50 p-3">
+                      <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded border bg-white shadow">
+                        <Image src={qrCodeUrl} alt="QR Preview" fill className="object-contain p-1" unoptimized />
+                      </div>
+                      <div className="text-sm space-y-1">
+                        <p className="font-bold text-green-700">✓ QR ready!</p>
+                        <a href={qrCodeUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline">
+                          Open full size ↗
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input id="pub-crqr" name="published" type="checkbox" defaultChecked={data.published} disabled={saving} />
+                  <label htmlFor="pub-crqr" className="text-sm text-gray-700">Published</label>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    disabled={saving || !fileUrl}
+                    className="rounded bg-blue-600 px-5 py-2 font-medium text-white hover:bg-blue-700 disabled:bg-gray-400"
+                  >
+                    {saving ? "Saving..." : data.id ? "Update" : "Save & Publish"}
+                  </button>
+                  {editing && (
+                    <button type="button" onClick={() => setEditing(false)} className="rounded border px-4 py-2 text-sm text-gray-700">
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </form>
+            </AdminFormCard>
+          )}
+        </div>
       )}
     </div>
   );
