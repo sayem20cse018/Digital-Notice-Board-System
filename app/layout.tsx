@@ -44,8 +44,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const isAdminRoute = pathname.startsWith('/admin');
   const isViewRoute = pathname.startsWith('/view');
 
-  const stored = await getDepartmentSettings();
-  const notices = (!isAdminRoute && !isViewRoute) ? await getRightSidebarNotices() : [];
+  const stored = await getDepartmentSettings().catch(() => null);
+  const notices = (!isAdminRoute && !isViewRoute)
+    ? await getRightSidebarNotices().catch(() => [])
+    : [];
 
   let deptName: string        = stored?.departmentName || 'Department of Computer Science & Engineering';
   let logoUrl: string | null  = stored?.logoUrl        || '/images/cse_logo.jpg';

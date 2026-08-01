@@ -2,12 +2,14 @@ import { notFound } from "next/navigation";
 import { CONTENT_KEYS, listItems } from "@/app/lib/content-store";
 import FileViewPage from "./FileViewPage";
 
+export const dynamic = "force-dynamic";
+
 type Props = {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ type?: string }>;
 };
 
-const TYPE_MAP: Record<string, { fileKey: string; mongoCollection: string; titleField?: string }> = {
+const TYPE_MAP: Record<string, { fileKey: string; mongoCollection: string; titleField: string }> = {
   "class-routine": { ...CONTENT_KEYS.classRoutineQr, titleField: "title" },
   "exam-routine":  { ...CONTENT_KEYS.examRoutineQr,  titleField: "title" },
   "help-office":   { ...CONTENT_KEYS.helpCenter,     titleField: "officeName" },
@@ -21,14 +23,18 @@ export default async function ViewFilePage({ params, searchParams }: Props) {
   const config = TYPE_MAP[type];
   if (!config) notFound();
 
-  const items = await listItems(config.fileKey, config.mongoCollection);
+  let items;
+  try {
+    items = await listItems(config.fileKey, config.mongoCollection);
+  } catch {
+    notFound();
+  }
 
-  // For help center, filter by contactType
   let item;
   if (type === "help-office") {
-    item = items.find((i) => String(i.id) === id && i.contactType === "office" && i.published !== false);
+    item = items.find((i) => String(i.id) === id && i.contactType === "office");
   } else if (type === "help-crs") {
-    item = items.find((i) => String(i.id) === id && i.contactType === "crs" && i.published !== false);
+    item = items.find((i) => String(i.id) === id && i.contactType === "crs");
   } else {
     item = items.find((i) => String(i.id) === id);
   }
@@ -38,9 +44,7 @@ export default async function ViewFilePage({ params, searchParams }: Props) {
   const fileUrl = String(item.fileUrl || "");
   if (!fileUrl) notFound();
 
-  const title = config.titleField
-    ? String(item[config.titleField] ?? type)
-    : type;
+  const title = String(item[config.titleField] ?? type);
 
   return <FileViewPage title={title} fileUrl={fileUrl} />;
 }
