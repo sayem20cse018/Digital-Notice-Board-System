@@ -75,14 +75,9 @@ export default function FileViewPage({ title, fileUrl }: Props) {
       {/* File content */}
       <div className="flex-1 overflow-hidden">
 
-        {/* PDF */}
+        {/* PDF — mobile browsers block PDF iframes; show viewer with direct open */}
         {fileType === "pdf" && (
-          <iframe
-            src={fileUrl}
-            className="w-full border-0"
-            style={{ height: "calc(100vh - 56px)" }}
-            title={title}
-          />
+          <PdfView title={title} fileUrl={fileUrl} />
         )}
 
         {/* Image */}
@@ -111,6 +106,41 @@ export default function FileViewPage({ title, fileUrl }: Props) {
           <FallbackView title={title} fileUrl={fileUrl} />
         )}
 
+      </div>
+    </div>
+  );
+}
+
+function PdfView({ title, fileUrl }: { title: string; fileUrl: string }) {
+  return (
+    <div
+      className="flex flex-col items-center justify-center gap-5 p-6 text-center"
+      style={{ minHeight: "calc(100vh - 56px)" }}
+    >
+      <div
+        className="rounded-2xl p-8 w-full max-w-sm"
+        style={{ background: "rgba(255,255,255,0.08)" }}
+      >
+        <p className="text-6xl mb-4">📑</p>
+        <h2 className="text-lg font-bold text-white mb-1">{title}</h2>
+        <p className="text-xs mb-6" style={{ color: "#93c5fd" }}>PDF Document</p>
+        <a
+          href={fileUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 w-full rounded-xl bg-white px-5 py-3.5 text-sm font-bold transition mb-3"
+          style={{ color: "#1e3a8a" }}
+        >
+          👁 View PDF
+        </a>
+        <a
+          href={fileUrl}
+          download
+          className="flex items-center justify-center gap-2 w-full rounded-xl border-2 px-5 py-3 text-sm font-semibold transition"
+          style={{ borderColor: "rgba(255,255,255,0.3)", color: "white" }}
+        >
+          ⬇ Download PDF
+        </a>
       </div>
     </div>
   );
