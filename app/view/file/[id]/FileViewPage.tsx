@@ -7,39 +7,65 @@ type Props = {
   fileUrl: string;
 };
 
-export default function FileViewPage({ title, fileUrl }: Props) {
-  const [loaded, setLoaded] = useState(false);
-  const lower = fileUrl.toLowerCase();
-  const isPdf = lower.includes(".pdf") || lower.includes("application/pdf");
-  const isImage =
+function detectFileType(url: string): "pdf" | "image" | "unknown" {
+  const lower = url.toLowerCase();
+
+  // Check extension
+  if (lower.includes(".pdf")) return "pdf";
+  if (
     lower.includes(".jpg") ||
     lower.includes(".jpeg") ||
     lower.includes(".png") ||
     lower.includes(".webp") ||
     lower.includes(".gif") ||
-    lower.includes("image/");
+    lower.includes(".svg") ||
+    lower.includes(".bmp")
+  ) return "image";
+
+  // Cloudinary URL patterns
+  // e.g. https://res.cloudinary.com/xxx/image/upload/... → image
+  // e.g. https://res.cloudinary.com/xxx/raw/upload/... → could be pdf
+  if (lower.includes("cloudinary.com")) {
+    if (lower.includes("/image/upload/")) return "image";
+    if (lower.includes("/raw/upload/")) return "pdf"; // treat raw as pdf/downloadable
+    if (lower.includes("/video/upload/")) return "unknown";
+    // Default cloudinary to image if no other match
+    return "image";
+  }
+
+  // Check query params or path segments for type hints
+  if (lower.includes("type=pdf") || lower.includes("format=pdf")) return "pdf";
+  if (lower.includes("type=image") || lower.includes("format=jpg") || lower.includes("format=png")) return "image";
+
+  return "unknown";
+}
+
+export default function FileViewPage({ title, fileUrl }: Props) {
+  const [imgError, setImgError] = useState(false);
+  const fileType = detectFileType(fileUrl);
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-br from-blue-900 to-indigo-900">
+    <div className="flex min-h-screen flex-col" style={{ background: "#0f172a" }}>
+
       {/* Header */}
       <div className="flex-shrink-0 bg-[#1e3a8a] px-4 py-3 flex items-center justify-between shadow-lg">
-        <div>
-          <h1 className="text-base font-bold text-white leading-tight">{title}</h1>
+        <div className="min-w-0 flex-1 mr-3">
+          <h1 className="text-base font-bold text-white leading-tight truncate">{title}</h1>
           <p className="text-xs text-blue-200 mt-0.5">CSE — GSTU</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <a
             href={fileUrl}
             download
-            className="rounded-lg bg-white/15 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/25 transition"
+            className="rounded-lg bg-white/20 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/30 transition"
           >
-            ⬇ Download
+            ⬇ Save
           </a>
           <a
             href={fileUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-lg bg-white/15 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/25 transition"
+            className="rounded-lg bg-white/20 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/30 transition"
           >
             Open ↗
           </a>
@@ -48,46 +74,80 @@ export default function FileViewPage({ title, fileUrl }: Props) {
 
       {/* File content */}
       <div className="flex-1 overflow-hidden">
-        {isPdf ? (
+
+        {/* PDF */}
+        {fileType === "pdf" && (
           <iframe
             src={fileUrl}
-            className="h-[calc(100vh-56px)] w-full border-0"
+            className="w-full border-0"
+            style={{ height: "calc(100vh - 56px)" }}
             title={title}
-            onLoad={() => setLoaded(true)}
           />
-        ) : isImage ? (
-          <div className="flex h-[calc(100vh-56px)] items-center justify-center p-4 bg-slate-900">
-            {!loaded && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-white text-sm animate-pulse">Loading…</span>
-              </div>
-            )}
+        )}
+
+        {/* Image */}
+        {fileType === "image" && !imgError && (
+          <div
+            className="flex items-center justify-center p-3"
+            style={{ minHeight: "calc(100vh - 56px)", background: "#1e293b" }}
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={fileUrl}
               alt={title}
-              className="max-h-full max-w-full rounded-lg object-contain shadow-xl"
-              onLoad={() => setLoaded(true)}
+              style={{ maxHeight: "calc(100vh - 80px)", maxWidth: "100%", borderRadius: 12, objectFit: "contain" }}
+              onError={() => setImgError(true)}
             />
           </div>
-        ) : (
-          /* Unknown type — show download prompt */
-          <div className="flex h-[calc(100vh-56px)] flex-col items-center justify-center gap-6 p-8 text-center">
-            <div className="rounded-2xl bg-white/10 p-8 max-w-sm w-full">
-              <p className="text-5xl mb-4">📄</p>
-              <h2 className="text-lg font-bold text-white mb-2">{title}</h2>
-              <p className="text-sm text-blue-200 mb-6">This file cannot be previewed directly. Use the button below to open or download it.</p>
-              <a
-                href={fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-full rounded-xl bg-white px-5 py-3 text-sm font-bold text-blue-900 hover:bg-blue-50 transition"
-              >
-                Open File ↗
-              </a>
-            </div>
-          </div>
         )}
+
+        {/* Image load error — fallback to open link */}
+        {fileType === "image" && imgError && (
+          <FallbackView title={title} fileUrl={fileUrl} />
+        )}
+
+        {/* Unknown — show prominent open button */}
+        {fileType === "unknown" && (
+          <FallbackView title={title} fileUrl={fileUrl} />
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+function FallbackView({ title, fileUrl }: { title: string; fileUrl: string }) {
+  return (
+    <div
+      className="flex flex-col items-center justify-center gap-5 p-6 text-center"
+      style={{ minHeight: "calc(100vh - 56px)" }}
+    >
+      <div
+        className="rounded-2xl p-8 w-full max-w-sm"
+        style={{ background: "rgba(255,255,255,0.08)" }}
+      >
+        <p className="text-5xl mb-4">📄</p>
+        <h2 className="text-lg font-bold text-white mb-2">{title}</h2>
+        <p className="text-sm mb-6" style={{ color: "#93c5fd" }}>
+          Tap the button below to view or download this file.
+        </p>
+        <a
+          href={fileUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-full rounded-xl bg-white px-5 py-3.5 text-sm font-bold transition"
+          style={{ color: "#1e3a8a" }}
+        >
+          Open File ↗
+        </a>
+        <a
+          href={fileUrl}
+          download
+          className="block w-full mt-3 rounded-xl border-2 px-5 py-3 text-sm font-semibold transition"
+          style={{ borderColor: "rgba(255,255,255,0.3)", color: "white" }}
+        >
+          ⬇ Download
+        </a>
       </div>
     </div>
   );
